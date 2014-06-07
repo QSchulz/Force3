@@ -1,11 +1,13 @@
 adversaire(1,2).
 adversaire(2,1).
 
-init_game([1, 0, 1,
-	   0,-1, 0,
-	   2, 0, 2]).
-	   
-jouer(X):-init_game(L), eval_board(L, 2, X).
+init_game([0, 0, 0,
+	   0, -1, 0,
+	   0, 0, 0]).
+:- set_prolog_stack(global, limit(2*10**12)).
+jouer(Diff, JR):-init_game(L), game(L, Diff, JR).
+game(Jeu, Diff, JR):- \+partie_finie(Jeu, _), negamax(Jeu, Diff, JR, _, Coup, Diff), draw(Coup), adversaire(JR, JR2), retract(last_move(Jeu)), assert(last_move(Coup)), game(Coup, Diff, JR2).
+%jouer(Value,Coup,Diff, JR):-init_game(L), alpha_beta(JR, Level, L, -200, 200, Coup, [-1], Valeur)
 
 %#########################
 %Déclaration des prédicats dynamiques
@@ -13,8 +15,7 @@ jouer(X):-init_game(L), eval_board(L, 2, X).
 %	-best_next_move est mis à jour à chaque node du negamax
 %#########################
 
-:- dynamic prev_move_taquin/2.
-:- dynamic best_next_move/1.
+:- dynamic last_move/1.
 
 %########################
 %Evaluation de la proposition (classement suivant l efficacité)
@@ -24,23 +25,23 @@ jouer(X):-init_game(L), eval_board(L, 2, X).
 % 	- Valeur retourne 0 si le jeu termine à égalité.
 %	- Si le jeu n est pas terminé, on attribue un score à l état actuel
 
-eval_board(Jeu, Joueur, Valeur):-
+eval_board(Jeu, Joueur, Valeur, Level, Depth):-
 	partie_finie(Jeu, X),	
 	X = Joueur,
 	!,
-	Valeur is 100. %à voir nbTours = profondeur
+	Valeur is 100-(Level-Depth). %à voir nbTours = profondeur
 	
-eval_board(Jeu, Joueur, Valeur):-
+eval_board(Jeu, Joueur, Valeur, Level, Depth):-
 	partie_finie(Jeu, X),
 	adversaire(Joueur, X),
 	!,
-	Valeur is -100 .%à voir nbTours
+	Valeur is -100+(Level-Depth).%à voir nbTours
 	
-eval_board(Jeu, _, 0):-
+eval_board(Jeu, _, 0, _, _):-
 	partie_finie(Jeu, 0),
 	!. %à voir pour le nombre de tours
 
-eval_board([C0, C1, C2, C3, C4, C5, C6, C7, C8], Joueur, Valeur):-
+eval_board([C0, C1, C2, C3, C4, C5, C6, C7, C8], Joueur, Valeur, Level, Depth):-
 	point(Joueur, [C0, C1, C2], X1),
 	point(Joueur, [C3, C4, C5], X2),
 	point(Joueur, [C6, C7, C8], X3),
@@ -58,7 +59,7 @@ eval_board([C0, C1, C2, C3, C4, C5, C6, C7, C8], Joueur, Valeur):-
 	point(Joueur2, [C2, C5, C8], Y6),
 	point(Joueur2, [C0, C4, C8], Y7),
 	point(Joueur2, [C2, C4, C6], Y8),
-	Valeur is X1 + X2 + X3 + X4 + X5 + X6 + X7 + X8 - Y1 - Y2 - Y3 - Y4 - Y5 - Y6 - Y7 - Y8.
+	Valeur is X1 + X2 + X3 + X4 + X5 + X6 + X7 + X8 - Y1 - Y2 - Y3 - Y4 - Y5 - Y6 - Y7 - Y8 - (Level-Depth).
 
 %#########################
 %Détection de fin du jeu
@@ -78,6 +79,7 @@ partie_finie([JR, JR, JR, _, _, _, X, X, X], 0):-
 	!.
 	
 partie_finie([JR, JR, JR|_], JR):-
+	JR \=0 ,
 	!.
 
 partie_finie([X, X, X, JR, JR, JR, _, _, _], 0):-
@@ -89,6 +91,7 @@ partie_finie([_, _, _, JR, JR, JR, X, X, X], 0):-
 	!.
 	
 partie_finie([_, _, _, JR, JR, JR|_], JR):-
+	JR \= 0,
 	!.
 
 partie_finie([X, X, X, _, _, _, JR, JR, JR], 0):-
@@ -100,24 +103,25 @@ partie_finie([_, _, _, X, X, X, JR, JR, JR], 0):-
 	!.
 	
 partie_finie([_, _, _, _, _, _, JR, JR, JR|_], JR):-
+	JR \= 0,
 	!.
 	
 %Détection des colonnes
 partie_finie([JR, X, _, JR, X, _, JR, X, _], 0):-adversaire(JR, X),!.
 partie_finie([JR, _, X, JR, _, X, JR, _, X], 0):-adversaire(JR, X),!.
-partie_finie([JR, _, _, JR, _, _, JR, _, _], JR):-!.
+partie_finie([JR, _, _, JR, _, _, JR, _, _], JR):- JR \= 0, !.
 
 partie_finie([X, JR, _, X, JR, _, X, JR, _], 0):-adversaire(JR, X),!.
 partie_finie([_, JR, X, _, JR, X, _, JR, X], 0):-adversaire(JR, X),!.
-partie_finie([_, JR, _, _, JR, _, _, JR, _], JR):-!.
+partie_finie([_, JR, _, _, JR, _, _, JR, _], JR):- JR \= 0, !.
 
 partie_finie([X, _, JR, X, _, JR, X, _, JR], 0):-adversaire(JR, X),!.
 partie_finie([_, X, JR, _, X, JR, _, X, JR], 0):-adversaire(JR, X),!.
-partie_finie([_, _, JR, _, _, JR, _, _, JR], JR):-!.
+partie_finie([_, _, JR, _, _, JR, _, _, JR], JR):- JR \=0, !.
 %Détection des diagonales
-partie_finie([_, _, JR, _, JR, _, JR, _, _], JR):-!.
+partie_finie([_, _, JR, _, JR, _, JR, _, _], JR):- JR \= 0, !.
 
-partie_finie([JR, _, _, _, JR, _, _, _, JR], JR):-!.
+partie_finie([JR, _, _, _, JR, _, _, _, JR], JR):-JR\=0, !.
 
 %#########################
 %Attribution des points si la partie n'est pas terminée
@@ -195,8 +199,7 @@ taquin_(7,1).
 taquin_(8,2).
 taquin_(8,6).
 taquin(CD, CA):-
-	taquin_(CD, CA),
-	!.
+	taquin_(CD, CA).
 	
 taquin(CD, CA):-
 	neighbour(CD, CA).
@@ -282,10 +285,6 @@ fill(JR, t, Jeu, Next, CD, CA):-
 	!,
 	nth0(CA, Jeu, Y),
 	nth0(CD, Jeu, X),
-	write(X),
-	writeln(CD),
-	write(Y),
-	writeln(CA),
 	swap(JR, t, Jeu, Next, X, Y, CD, CA, 0),
 	!.
 	
@@ -295,12 +294,8 @@ fill(JR, t, Jeu, Next, CD, CA):-
 	nth0(CT, Jeu, Z),
 	nth0(CA, Jeu, Y),
 	nth0(CD, Jeu, X),
-	write(X),
-	writeln(CD),
-	write(Y),
-	writeln(CA),
 	swap(JR, t, Jeu, Next1, X, Z, CD, CT, 0),
-	swap(JR, t, Next1, Next, Z, Y, CT, CA, 0),
+	swap(JR, t, Next1, Next, X, Y, CT, CA, 0),
 	!.
 
 %#########################
@@ -318,86 +313,71 @@ draw([C0, C1, C2, C3, C4, C5, C6, C7, C8]):-
 %#########################
 
 findnextmoves(Jeu, Moves, JR):-
-	writeln('Matrice de jeu de départ'),
-	draw(Jeu),
 	findall(Move, move(JR, d, Jeu, Move), List),
-	writeln('Déplacements pion:'),
-	foreach(member(X, List), draw(X)),
 	findall(Move2, move(JR, p, Jeu, Move2), List2),
-	writeln('Poses:'),
-	foreach(member(X, List2), draw(X)),
 	findall(Move3, move(JR, t, Jeu, Move3), List3),
-	writeln('Déplacements taquin:'),
-	foreach(member(X, List3), draw(X)),
 	append([List,List2,List3], Moves).
 
 %#########################
 %Algorithme du negamax
-%BV is -100000 est l'équivalent pour l'infini (on ne dépassera normalement jamais les 100).
 %#########################
-negamax(Jeu, 0, _,_,JR, X):-
-	eval_board(Jeu, JR, X),
+negamax(Jeu, 0, JR, X, Jeu, Level):-
 	!,
-	write('profondeur atteinte').
+	eval_board(Jeu, JR, X, Level, 0).
 	
-negamax(Jeu, _,_,_,JR, X):-
+negamax(Jeu, Depth,JR, X, Jeu, Level):-
 	partie_finie(Jeu, _),
 	!,
-	eval_board(Jeu, JR, X),
-	write('la win').
+	eval_board(Jeu, JR, X, Level, Depth).
 	
-negamax(Jeu, Prof, Alpha, Beta, JR, BestVal):-
-	BV is -100000,
+negamax(Jeu, Prof, JR, BestVal, BestMove, Level):-
 	findnextmoves(Jeu, Moves, JR),
-	for_each(Moves, Prof, Alpha, Beta, JR, BestVal, BV).%, best_next_move(X), write(X), update_prev_move_taquin(Jeu, X).%, draw(X), adversaire(JR, Y), newturn(Y).
+	for_each(Moves, Prof, JR, -1000, BestVal, BestMove, Level).%, best_next_move(X), write(X), update_prev_move_taquin(Jeu, X).%, draw(X), adversaire(JR, Y), newturn(Y).
 
 %#########################
 %On itère sur l'ensemble des mouvements possibles et on trouve la meilleure valeur.
 %#########################
-for_each([], _, _, _, _, BV, BV).
-
-for_each([Jeu|Moves], Prof, Alpha, Beta, JR, BestVal, BV):-
+%Les deux prédicats suivants sont les appels finaux (quand il ne reste qu'une node dans la même profondeur).
+for_each([Move], Prof, JR, Val, BestVal, Move, Level):-
 	Prof1 is Prof-1,
-	Alpha1 is -Alpha,
-	Beta1 is -Beta,
-	adversaire(JR, Y),
-	negamax(Jeu, Prof1, Beta1, Alpha1, Y, X),
-	Val is -X,
-	BestVal is max(BV, Val),
-	BestVal = Val,
-	retract(best_next_move(_,_)),
-	assert(best_next_move(Jeu)),
-	Alpha2 is max(Alpha, Val),
-	Alpha2 >= Beta,
+	adversaire(JR, JR2),
+	negamax(Move, Prof1, JR2, Val1, BestMove, Level),
+	Val2 is -Val1,
+	BestVal is max(Val2, Val),
+	BestVal = Val2,
 	!.
-
-for_each([Jeu|Moves], Prof, Alpha, Beta, JR, BestVal, BV):-
+	
+for_each([Move], Prof, JR, Val, BestVal, _, Level):-
 	Prof1 is Prof-1,
-	Alpha1 is -Alpha,
-	Beta1 is -Beta,
-	adversaire(JR, Y),
-	negamax(Jeu, Prof1, Beta1, Alpha1, Y, X),
-	Val is -X,
-	BV1 is max(BV, Val),
-	BV1 = Val,
-	retract(best_next_move(_,_)),
-	assert(best_next_move(Jeu)),
-	Alpha2 is max(Alpha, Val),
-	Alpha2 < Beta,
-	for_each(Moves, Prof, Alpha2, Beta, JR, BestVal, BV1).
+	adversaire(JR, JR2),
+	negamax(Move, Prof1, JR2, Val1, _, Level),
+	Val2 is -Val1,
+	BestVal is max(Val2, Val),
+	BestVal \= Val2,
+	!.
+	
+	
+	
+	
 
-for_each([Jeu|Moves], Prof, Alpha, Beta, JR, BestVal, BV):-
+for_each([Move|Moves], Prof, JR,Val, BestVal, Move, Level):-
 	Prof1 is Prof-1,
-	Alpha1 is -Alpha,
-	Beta1 is -Beta,
-	adversaire(JR, Y),
-	negamax(Jeu, Prof1, Beta1, Alpha1, Y, X),
-	Val is -X,
-	BV1 is max(BV, Val),
-	BV1 = BV,
-	Alpha2 is max(Alpha, Val),
-	Alpha2 < Beta,
-	for_each(Moves, Prof, Alpha2, Beta, JR, BestVal, BV1).
+	adversaire(JR, JR2),
+	negamax(Move, Prof1, JR2, Val1, BestMove, Level),
+	Val2 is -Val1,
+	Val3 is max(Val2, Val),
+	for_each(Moves, Prof, JR, Val3, BestVal, _, Level),
+	BestVal = Val3,
+	!. 
+	
+for_each([Move|Moves], Prof, JR, Val, BestVal, BestMove, Level):-
+	Prof1 is Prof-1,
+	adversaire(JR, JR2),
+	negamax(Move, Prof1, JR2, Val1, BestMove1, Level),
+	Val2 is -Val1,
+	Val3 is max(Val2, Val),
+	for_each(Moves, Prof, JR, Val3, BestVal, BestMove, Level),
+	BestVal \= Val3,!. 
 
 %#########################
 %Mettre à jour la valeur du dernier mouvement du taquin (s'il reste sur place: création quand même).
@@ -406,6 +386,6 @@ for_each([Jeu|Moves], Prof, Alpha, Beta, JR, BestVal, BV):-
 update_prev_move_taquin(Jeu, Next):-
 	nth0(CD, Jeu, -1),
 	nth0(CA, Next, -1),
-	retract(prev_move_taquin(_,_))
+	retractall(prev_move_taquin),
 	assert(prev_move_taquin(CD, CA)).
 
