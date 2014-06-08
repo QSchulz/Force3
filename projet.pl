@@ -1,4 +1,4 @@
-:-module(projet, [adversaire/2, init_game/1, play_human/4, play_ia/4, play_ia2/5, can_move/5]). 
+:-module(projet, [adversaire/2, init_game/1, play_human/4, play_ia/4, play_ia2/5, can_move/5, fill/6]). 
 :-use_module('gui.pl').
 
 
@@ -9,65 +9,57 @@ init_game([0, 0, 0,
 	   0,-1, 0,
 	   0, 0, 0]).
 
-/*init_game([ 1, 0, 2,
-	    2,-1, 2,
-	    1, 0, 1]).*/
-	
 play_human(Jeu, Last, Diff, JR):-
-	\+partie_finie(Jeu, _),
-	ask_placement(JR, Jeu, CD, CA, ID),
+	\+partie_finie(Jeu, _Gagnant),
+	ask_placement(JR, Jeu, CD, CA, ID, Last),
 	fill(JR, ID, Jeu, Coup, CD, CA),
 	display_board(JR, -1, Coup),
 	adversaire(JR, JR2),
 	play_ia(Coup, Jeu, Diff, JR2),
 	!.
 
-play_human(Jeu, _, Diff, JR):-
+play_human(Jeu, _Last, _Diff, _JR):-
 	partie_finie(Jeu, 0),
 	write('Egalité!'),
 	!.
 	
-play_human(Jeu, _, Diff, JR):-
-	partie_finie(Jeu, 1),
-	write('Joueur 1 gagne!'),
+play_human(Jeu, _Last, _Diff, _JR):-
+	partie_finie(Jeu, X),
+	writef('Joueur %w gagne!', [X]),
 	!.
 	
-play_human(Jeu,_, Diff, JR):-
-	partie_finie(Jeu, 2),
-	write('Joueur 2 gagne!'),!.
-	
 play_ia(Jeu, Last, Diff, JR):-
-	\+partie_finie(Jeu, _),
-	negamax(Jeu, Diff, JR, _, Coup, [Last, Jeu], Diff),
+	\+partie_finie(Jeu, _Gagnat),
+	negamax(Jeu, Diff, JR, _BestValue, Coup, [Last, Jeu], Diff),
 	display_board(JR, 1, Coup),
 	adversaire(JR, JR2),
 	play_human(Coup, Jeu, Diff, JR2),
 	!.
 
-play_ia(Jeu, _, Diff, JR):-
+play_ia(Jeu, _Last, _Diff, _JR):-
 	partie_finie(Jeu, 0),
 	write('Egalité!'),
 	!.
 	
-play_ia(Jeu, _, Diff, JR):-
+play_ia(Jeu, _Last, _Diff, _JR):-
 	partie_finie(Jeu, X),
 	writef('Joueur %w gagne!', [X]),
 	!.
 	
 play_ia2(Jeu, Last, Diff, Diff2, JR):-
-	\+partie_finie(Jeu, _),
-	negamax(Jeu, Diff, JR, _, Coup, [Last, Jeu], Diff),
+	\+partie_finie(Jeu, _Gagnant),
+	negamax(Jeu, Diff, JR, _BestValue, Coup, [Last, Jeu], Diff),
 	display_board(JR, 1, Coup),
 	adversaire(JR, JR2),
 	play_ia2(Coup, Jeu, Diff2, Diff, JR2),
 	!.
 
-play_ia2(Jeu, _, Diff, Diff2, JR):-
+play_ia2(Jeu, _Last, _Diff, _Diff2, _JR):-
 	partie_finie(Jeu, 0),
 	write('Egalité!'),
 	!.
 	
-play_ia2(Jeu, _, Diff, Diff2, JR):-
+play_ia2(Jeu, _Last, _Diff, _Diff2, _JR):-
 	partie_finie(Jeu, X),
 	writef('IA %w gagne!', [X]),
 	!.
@@ -92,7 +84,7 @@ eval_board(Jeu, Joueur, Valeur, Level, Depth):-
 	!,
 	Valeur is -100+(Level-Depth).%à voir nbTours
 	
-eval_board(Jeu, _, 0, _, _):-
+eval_board(Jeu, _Joueur, 0, _Level, _Depth):-
 	partie_finie(Jeu, 0),
 	!. %à voir pour le nombre de tours
 
@@ -199,7 +191,7 @@ point(List, Joueur, 0):-
 %#########################
 %Récupération du nombre de pions posés par le joueur JR
 %#########################
-count(_, [], 0) :-
+count(_JR, [], 0) :-
 	!.
 	
 count(JR, [JR|R], I) :-
@@ -262,7 +254,7 @@ taquin(CD, CA):-
 %#########################
 %Possibilité d'une pose d'un pion du joueur JR sur la case CA
 %#########################
-can_move(JR, 0, Jeu, _, CA) :-
+can_move(JR, 0, Jeu, _CD, CA) :-
 	nth0(CA, Jeu, 0),
 	count(JR, Jeu, X),
 	X < 3.
@@ -278,7 +270,7 @@ can_move(JR, 1, Jeu, CD, CA) :-
 %#########################
 %Possibilité du déplacement du taquin de la case CD à la case CA
 %#########################
-can_move(_, 2, Jeu, CD, CA) :-
+can_move(_JR, 2, Jeu, CD, CA) :-
 	nth0(CD, Jeu, -1),
 	taquin(CD, CA).
 	
@@ -294,9 +286,9 @@ move(JR, T, Jeu, Next):-
 %Interchanger la valeur X et Y des cases d'index CD et CA d'une matrice Jeu vers une matrice Next.
 %#########################
 
-swap(_,_,[],[],_,_,_,_,_).
+swap(_JR,_T,[],[],_X,_Y,_CD,_CA,_I).
 
-swap(_,_,Jeu,Jeu,_,_,CD,CA,I):-
+swap(_JR,_T,Jeu,Jeu,_X,_Y,CD,CA,I):-
 	I > CD,
 	I > CA,
 	!.
@@ -324,7 +316,7 @@ swap(JR, T, [_|Jeu], [Y|Next], X, Y, CD, CA, I):-
 %Remplir la nouvelle matrice de jeu Next avec l'ordre de jeu T allant de CD à CA depuis la matrice Jeu.
 %#########################
 
-fill(JR, 0, Jeu, Next, CD, CA):-
+fill(JR, 0, Jeu, Next, _CD, CA):-
 	swap(JR, 0, Jeu, Next, JR, -2, -1, CA, 0),
 	!.
 	
@@ -353,16 +345,6 @@ fill(JR, 2, Jeu, Next, CD, CA):-
 	!.
 
 %#########################
-%Dessiner la matrice de jeu sur trois lignes.
-%#########################
-	
-draw([C0, C1, C2, C3, C4, C5, C6, C7, C8]):-
-	writeln([C0, C1, C2]),
-	writeln([C3, C4, C5]),
-	writeln([C6, C7, C8]),
-	writeln('-----------').
-
-%#########################
 %Recherche de tous les coups possibles
 %#########################
 
@@ -381,31 +363,31 @@ negamax(Jeu, 0, JR, X, Jeu, _ForbiddenMove, Level):-
 	eval_board(Jeu, JR, X, Level, 0).
 	
 negamax(Jeu, Depth, JR, X, Jeu, _ForbiddenMove, Level):-
-	partie_finie(Jeu, _),
+	partie_finie(Jeu, _Gagnant),
 	!,
 	eval_board(Jeu, JR, X, Level, Depth).
 	
 negamax(Jeu, Prof, JR, BestVal, BestMove, [ForbiddenMove, NextForbiddenMove], Level):-
 	findnextmoves(Jeu, Moves, JR, ForbiddenMove),
-	for_each(Moves, Prof, JR, -1000, BestVal, BestMove, [ForbiddenMove, NextForbiddenMove], Level).%, best_next_move(X), write(X), update_prev_move_taquin(Jeu, X).%, draw(X), adversaire(JR, Y), newturn(Y).
+	for_each(Moves, Prof, JR, -1000, BestVal, BestMove, [ForbiddenMove, NextForbiddenMove], Level).
 
 %#########################
 %On itère sur l'ensemble des mouvements possibles et on trouve la meilleure valeur.
 %#########################
 %Les deux prédicats suivants sont les appels finaux (quand il ne reste qu'une node dans la même profondeur).
-for_each([Move], Prof, JR, Val, BestVal, Move, [ForbiddenMove, NextForbiddenMove], Level):-
+for_each([Move], Prof, JR, Val, BestVal, Move, [_ForbiddenMove, NextForbiddenMove], Level):-
 	Prof1 is Prof-1,
 	adversaire(JR, JR2),
-	negamax(Move, Prof1, JR2, Val1, BestMove, [NextForbiddenMove, Move], Level),
+	negamax(Move, Prof1, JR2, Val1, _BestMove, [NextForbiddenMove, Move], Level),
 	Val2 is -Val1,
 	BestVal is max(Val2, Val),
 	BestVal = Val2,
 	!.
 	
-for_each([Move], Prof, JR, Val, BestVal, _, [ForbiddenMove, NextForbiddenMove], Level):-
+for_each([Move], Prof, JR, Val, BestVal, _Move, [_ForbiddenMove, NextForbiddenMove], Level):-
 	Prof1 is Prof-1,
 	adversaire(JR, JR2),
-	negamax(Move, Prof1, JR2, Val1, _, [NextForbiddenMove, Move], Level),
+	negamax(Move, Prof1, JR2, Val1, _MoveNegamax, [NextForbiddenMove, Move], Level),
 	Val2 is -Val1,
 	BestVal is max(Val2, Val),
 	BestVal \= Val2,
@@ -415,17 +397,17 @@ for_each([Move], Prof, JR, Val, BestVal, _, [ForbiddenMove, NextForbiddenMove], 
 for_each([Move|Moves], Prof, JR,Val, BestVal, Move, [ForbiddenMove, NextForbiddenMove], Level):-
 	Prof1 is Prof-1,
 	adversaire(JR, JR2),
-	negamax(Move, Prof1, JR2, Val1, BestMove, [NextForbiddenMove, Move], Level),
+	negamax(Move, Prof1, JR2, Val1, _BestMove, [NextForbiddenMove, Move], Level),
 	Val2 is -Val1,
 	Val3 is max(Val2, Val),
-	for_each(Moves, Prof, JR, Val3, BestVal, _, [ForbiddenMove, NextForbiddenMove], Level),
+	for_each(Moves, Prof, JR, Val3, BestVal, _Move, [ForbiddenMove, NextForbiddenMove], Level),
 	BestVal = Val3,
 	!. 
 	
 for_each([Move|Moves], Prof, JR, Val, BestVal, BestMove, [ForbiddenMove, NextForbiddenMove], Level):-
 	Prof1 is Prof-1,
 	adversaire(JR, JR2),
-	negamax(Move, Prof1, JR2, Val1, BestMove1, [NextForbiddenMove, Move], Level),
+	negamax(Move, Prof1, JR2, Val1, _BestMove, [NextForbiddenMove, Move], Level),
 	Val2 is -Val1,
 	Val3 is max(Val2, Val),
 	for_each(Moves, Prof, JR, Val3, BestVal, BestMove, [ForbiddenMove, NextForbiddenMove], Level),

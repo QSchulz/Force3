@@ -1,4 +1,4 @@
-:- module(mod_ui, [play/0, ask_menu/1, start/1, welcome/0, display_board/3, display_coords/1, ask_placement/5]).
+:- module(mod_ui, [play/0, ask_menu/1, start/1, welcome/0, display_board/3, display_coords/1, ask_placement/6]).
 :- use_module('projet.pl').
 
 
@@ -24,7 +24,7 @@ ask_dest(C) :-
     ask_dest(C).
 
 % Demande un coup à l'utilisateur
-ask_placement(JR, Jeu, CD, CA, Type) :-
+ask_placement(JR, Jeu, CD, CA, Type, Last) :-
     display_coords(Jeu), nl,
     writeln('Choix disponibles :'),
     writeln('\t0.\tPoser un pion'),
@@ -33,15 +33,15 @@ ask_placement(JR, Jeu, CD, CA, Type) :-
     writeln('\t3.\tQuitter le jeu'),
     ask_jeu(Type),
     (Type == 0 ->
-    	CD is -1, ask_dest(CA), can_move(JR, Type, Jeu, CD, CA); 	
+    	CD is -1, ask_dest(CA), can_move(JR, Type, Jeu, CD, CA), fill(JR, Type, Jeu, Coup, CD, CA), Coup \= Last; 	
      Type == 2 ->
-    	ask_dest(CA), can_move(JR, Type, Jeu, CD, CA);
+    	ask_dest(CA), can_move(JR, Type, Jeu, CD, CA), fill(JR, Type, Jeu, Coup, CD, CA), Coup \= Last;
      Type == 1 ->
-     	ask_orig(CD), ask_dest(CA), can_move(JR, Type, Jeu, CD, CA);
+     	ask_orig(CD), ask_dest(CA), can_move(JR, Type, Jeu, CD, CA), fill(JR, Type, Jeu, Coup, CD, CA), Coup \= Last;
      halt).
     
-ask_placement(JR, Jeu, CD, CA, Type) :-
-	writeln('Choix impossible. Veuillez réessayer.'), ask_placement(JR, Jeu, CD, CA, Type).	
+ask_placement(JR, Jeu, CD, CA, Type, Last) :-
+	writeln('Choix impossible. Veuillez réessayer.'), ask_placement(JR, Jeu, CD, CA, Type, Last).	
 		  	
 
 ask_menu(ID) :-
@@ -83,7 +83,7 @@ display_board(J, -1, [C1, C2, C3, C4, C5, C6, C7, C8, C9]):-
     write('    |'), afc(C7), write(' '), afc(C8), write(' '), afc(C9), write('|'), nl,
     write('     -----'), nl, nl.
 
-display_board(J, IDLevel, [C1, C2, C3, C4, C5, C6, C7, C8, C9]):-
+display_board(J, _IDLevel, [C1, C2, C3, C4, C5, C6, C7, C8, C9]):-
     write('     _____'), nl,
     write('    |'), afc(C1), write(' '), afc(C2), write(' '), afc(C3), write('|'), nl,
     write('  '),
@@ -147,4 +147,4 @@ start(0) :-
     play.
 start(1) :-
     level_ia.
-start(_) :- !.
+start(_Choix) :- !.
