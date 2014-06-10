@@ -2,28 +2,32 @@
 :- use_module('projet.pl').
 
 
-
+%ask_orig(-Origine)
 ask_orig(C) :-
     write('Coordonnée (origine) : '),
     read(C),
     integer(C),
     between(0, 8, C), !.
-    
+   
+%ask_orig(-Origine)
 ask_orig(C) :-
     writeln('Coordonnée invalide. Reprécisez.'),
     ask_orig(C).
 
+%ask_dest(-Destination)
 ask_dest(C) :-
     write('Coordonnée (destination) : '),
     read(C),
     integer(C),
     between(0, 8, C), !.
-    
+
+%ask_dest(-Destination)
 ask_dest(C) :-
     writeln('Mouvement invalide. Reprécisez.'),
     ask_dest(C).
 
-% Demande un coup à l'utilisateur
+% Demande un coup à l'utilisateur, vérifies sa possibilité par rapport au mouvement et au dernier mouvement effectué
+%ask_placement(+Joueur, +Jeu, -CaseDepart, -CaseArrivée, -Type, +DernierMouvement)
 ask_placement(JR, Jeu, CD, CA, Type, Last) :-
     display_coords(Jeu), nl,
     writeln('Choix disponibles :'),
@@ -39,25 +43,29 @@ ask_placement(JR, Jeu, CD, CA, Type, Last) :-
      Type == 1 ->
      	ask_orig(CD), ask_dest(CA), can_move(JR, Type, Jeu, CD, CA), fill(JR, Type, Jeu, Coup, CD, CA), Coup \= Last;
      halt).
-    
+
+%ask_placement(+Joueur, +Jeu, -CaseDepart, -CaseArrivée, -Type, +DernierMouvement)
 ask_placement(JR, Jeu, CD, CA, Type, Last) :-
 	writeln('Choix impossible. Veuillez réessayer.'), ask_placement(JR, Jeu, CD, CA, Type, Last).	
 		  	
-
+%ask_menu(-ID)
 ask_menu(ID) :-
     read(ID),
     integer(ID),
     between(0, 3, ID), !.
 
+%ask_menu(-ID)
 ask_menu(ID) :-
     writeln('Choix invalide. Reprécisez.'),
     ask_menu(ID).    
-    
+
+%ask_jeu(-ID)   
 ask_jeu(ID) :-
     read(ID),
     integer(ID),
     between(0, 4, ID), !.
 
+%ask_jeu(-ID)   
 ask_jeu(ID) :-
     writeln('Choix invalide. Reprécisez.'),
     ask_menu(ID).    
@@ -74,6 +82,8 @@ play :-
     play_human(Board, [0,0,0,0,0,0,0,0,0], Level, 1).
 
 % Affiche le plateau de jeu
+%display_board(+Joueur, +Type, +Jeu)
+%Type vaut -1 si utilisateur, autre sinon
 display_board(J, -1, [C1, C2, C3, C4, C5, C6, C7, C8, C9]):-
     !,
     write('     _____'), nl,
@@ -83,6 +93,8 @@ display_board(J, -1, [C1, C2, C3, C4, C5, C6, C7, C8, C9]):-
     write('    |'), afc(C7), write(' '), afc(C8), write(' '), afc(C9), write('|'), nl,
     write('     -----'), nl, nl.
 
+%display_board(+Joueur, +Type, +Jeu)
+%Type vaut -1 si utilisateur, autre sinon
 display_board(J, _IDLevel, [C1, C2, C3, C4, C5, C6, C7, C8, C9]):-
     write('     _____'), nl,
     write('    |'), afc(C1), write(' '), afc(C2), write(' '), afc(C3), write('|'), nl,
@@ -92,6 +104,7 @@ display_board(J, _IDLevel, [C1, C2, C3, C4, C5, C6, C7, C8, C9]):-
     write('     -----'), nl, nl.
 
 % Affiche les coordonnées du plateau
+%display_coords(+Jeu)
 display_coords([C1, C2, C3, C4, C5, C6, C7, C8, C9]):-
     write('     _____                           _____'), nl,
     write('    |'), afc(C1), write(' '), afc(C2), write(' '), afc(C3), write('|'),
@@ -103,6 +116,7 @@ display_coords([C1, C2, C3, C4, C5, C6, C7, C8, C9]):-
     write('     -----                           -----'), nl, !.
 
 % Affecte les cases en fonction de leur nature
+%afc(+Case)
 afc(0) :-
     write(' ').
 afc(-1) :-
@@ -131,6 +145,7 @@ level_ia :-
     tty_clear,
     play_ia2(Jeu, [0,0,0,0,-1,0,0,0,0], Level1, Level2, 1).
 
+%menu_ia(+ID, -Level)
 menu_ia(ID, Level) :-
     write('-----Niveau IA '), write(ID), writeln('--------------'),
     writeln('|  0.\tFacile               |'),
@@ -139,10 +154,12 @@ menu_ia(ID, Level) :-
     writeln('------------------------------'),
     ask_menu(Level1),
     ia_level(Level1, Level).
-    
+
+%ia_level(+Level1, -Level)
 ia_level(Level1, Level):-Level is Level1+1.
 
 % Lance en fonction du choix du joueur
+%start(+Choix)
 start(0) :-
     play.
 start(1) :-

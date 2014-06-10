@@ -1,14 +1,17 @@
 :-module(projet, [adversaire/2, init_game/1, play_human/4, play_ia/4, play_ia2/5, can_move/5, fill/6]). 
 :-use_module('gui.pl').
 
-
+%adversaire(?Joueur1, ?Joueur2)
 adversaire(1,2).
 adversaire(2,1).
 
+%init_game(+Jeu)
 init_game([0, 0, 0,
 	   0,-1, 0,
 	   0, 0, 0]).
 
+%Faire jouer l'utilisateur
+%play_human(+Jeu, +DernierMouvement, +NiveauIA, +Joueur)
 play_human(Jeu, Last, Diff, JR):-
 	\+partie_finie(Jeu, _Gagnant),
 	ask_placement(JR, Jeu, CD, CA, ID, Last),
@@ -17,17 +20,21 @@ play_human(Jeu, Last, Diff, JR):-
 	adversaire(JR, JR2),
 	play_ia(Coup, Jeu, Diff, JR2),
 	!.
-
+	
+%play_human(+Jeu, +DernierMouvement, +NiveauIA, +Joueur)
 play_human(Jeu, _Last, _Diff, _JR):-
 	partie_finie(Jeu, 0),
 	write('Egalité!'),
 	!.
 	
+%play_human(+Jeu, +DernierMouvement, +NiveauIA, +Joueur)
 play_human(Jeu, _Last, _Diff, _JR):-
 	partie_finie(Jeu, X),
 	writef('Joueur %w gagne!', [X]),
 	!.
-	
+
+%Fait jouer l'IA
+%play_ia(+Jeu, +Last, +NiveauIA, +Joueur)
 play_ia(Jeu, Last, Diff, JR):-
 	\+partie_finie(Jeu, _Gagnat),
 	negamax(Jeu, Diff, JR, _BestValue, Coup, [Last, Jeu], Diff),
@@ -36,16 +43,19 @@ play_ia(Jeu, Last, Diff, JR):-
 	play_human(Coup, Jeu, Diff, JR2),
 	!.
 
+%play_ia(+Jeu, +Last, +NiveauIA, +Joueur)
 play_ia(Jeu, _Last, _Diff, _JR):-
 	partie_finie(Jeu, 0),
 	write('Egalité!'),
 	!.
-	
+
+%play_ia(+Jeu, +Last, +NiveauIA, +Joueur)	
 play_ia(Jeu, _Last, _Diff, _JR):-
 	partie_finie(Jeu, X),
 	writef('Joueur %w gagne!', [X]),
 	!.
-	
+%Fait jouer les IA l'une contre l'autre
+%play_ia2(+Jeu, +Last, +NiveauIA1, +NiveauIA2, +Joueur)	
 play_ia2(Jeu, Last, Diff, Diff2, JR):-
 	\+partie_finie(Jeu, _Gagnant),
 	negamax(Jeu, Diff, JR, _BestValue, Coup, [Last, Jeu], Diff),
@@ -54,11 +64,13 @@ play_ia2(Jeu, Last, Diff, Diff2, JR):-
 	play_ia2(Coup, Jeu, Diff2, Diff, JR2),
 	!.
 
+%play_ia2(+Jeu, +Last, +NiveauIA1, +NiveauIA2, +Joueur)	
 play_ia2(Jeu, _Last, _Diff, _Diff2, _JR):-
 	partie_finie(Jeu, 0),
 	write('Egalité!'),
 	!.
-	
+
+%play_ia2(+Jeu, +Last, +NiveauIA1, +NiveauIA2, +Joueur)		
 play_ia2(Jeu, _Last, _Diff, _Diff2, _JR):-
 	partie_finie(Jeu, X),
 	writef('IA %w gagne!', [X]),
@@ -67,26 +79,27 @@ play_ia2(Jeu, _Last, _Diff, _Diff2, _JR):-
 %########################
 %Evaluation de la proposition (classement suivant l efficacité)
 %########################
-%	- Valeur retourne 100 (- le nombre de tours nécessaires si Joueur a gagné ?)
-%	- Valeur retourne -100 (+ le nombre de tours nécessaires si Joueur a perdu ?)
+%	- Valeur retourne 100 (- le nombre de tours nécessaires si Joueur a gagné)
+%	- Valeur retourne -100 (+ le nombre de tours nécessaires si Joueur a perdu)
 % 	- Valeur retourne 0 si le jeu termine à égalité.
 %	- Si le jeu n est pas terminé, on attribue un score à l état actuel
+%eval_board(+Jeu, +Joueur, -Valeur, +Niveau IA, +Profondeur)
 
 eval_board(Jeu, Joueur, Valeur, Level, Depth):-
 	partie_finie(Jeu, X),	
 	X = Joueur,
 	!,
-	Valeur is 100-(Level-Depth). %à voir nbTours = profondeur
+	Valeur is 100-(Level-Depth).
 	
 eval_board(Jeu, Joueur, Valeur, Level, Depth):-
 	partie_finie(Jeu, X),
 	adversaire(Joueur, X),
 	!,
-	Valeur is -100+(Level-Depth).%à voir nbTours
+	Valeur is -100+(Level-Depth).
 	
 eval_board(Jeu, _Joueur, 0, _Level, _Depth):-
 	partie_finie(Jeu, 0),
-	!. %à voir pour le nombre de tours
+	!.
 
 eval_board([C0, C1, C2, C3, C4, C5, C6, C7, C8], Joueur, Valeur, Level, Depth):-
 	point(Joueur, [C0, C1, C2], X1),
@@ -115,6 +128,7 @@ eval_board([C0, C1, C2, C3, C4, C5, C6, C7, C8], Joueur, Valeur, Level, Depth):-
 %	- X retourne 1 si Joueur1 a aligné ses trois pions
 %	- X retourne 2 si Joueur2 a aligné ses trois pions
 % 	Le prédicat échoue si aucun des joueurs n a aligné trois pions
+%partie_finie(+Jeu, ?Gagnant)
 
 %Détection des lignes
 partie_finie([JR, JR, JR, X, X, X, _, _, _], 0):-
@@ -176,7 +190,7 @@ partie_finie([JR, _, _, _, JR, _, _, _, JR], JR):-JR\=0, !.
 %	- 5 points pour 2 pions sur la même ligne/colonne/diagonale
 %	- 1 point pour 1 pion sur la même ligne/colonne/diagonale
 %	- 0 sinon.
-
+%point(+LigneOuColonne, +Joueur, -Valeur)
 point(List, Joueur, 5):-
 	count(List, Joueur, 2),
 	!.
@@ -191,6 +205,7 @@ point(List, Joueur, 0):-
 %#########################
 %Récupération du nombre de pions posés par le joueur JR
 %#########################
+%count(+Joueur, +LigneOuColonne, -Valeur)
 count(_JR, [], 0) :-
 	!.
 	
@@ -205,6 +220,7 @@ count(JR, [Y|R], I) :-
 %#########################
 %Définition des voisins
 %#########################
+%neighbour(?Case1, ?Case2)
 neighbour(0,1).
 neighbour(0,3).
 neighbour(1,0).
@@ -233,6 +249,8 @@ neighbour(8,7).
 %#########################
 %Définition des possibles mouvements du taquin
 %#########################
+%taquin_(?Case1, ?Case2)
+%taquin(?Case1, ?Case2)
 taquin_(0,2).
 taquin_(0,6).
 taquin_(1,7).
@@ -251,6 +269,8 @@ taquin(CD, CA):-
 taquin(CD, CA):-
 	neighbour(CD, CA).
 
+%can_move(+Joueur, +Type, +Jeu, ?CaseDepart, ?CaseArrivée)
+%Type = 0 pour pose de pion, 1 pour déplacement de pion et 2 pour déplacement de taquin
 %#########################
 %Possibilité d'une pose d'un pion du joueur JR sur la case CA
 %#########################
@@ -277,7 +297,7 @@ can_move(_JR, 2, Jeu, CD, CA) :-
 %#########################
 %Trouver l'ensemble des possibilités de mouvements suivant le type de jeu T.
 %#########################
-
+%move(+Joueur, +Type, +Jeu, -Next)
 move(JR, T, Jeu, Next):-
 	can_move(JR, T, Jeu, CD, CA),
 	fill(JR, T, Jeu, Next, CD, CA).
@@ -285,7 +305,7 @@ move(JR, T, Jeu, Next):-
 %#########################
 %Interchanger la valeur X et Y des cases d'index CD et CA d'une matrice Jeu vers une matrice Next.
 %#########################
-
+%swap(+Joueur, +Type, +Jeu, -ProchainMouvement, +ValeurCaseDepart, +ValeurCaseArrivée, +CaseDepart, +CaseArrivée, +Compteur)
 swap(_JR,_T,[],[],_X,_Y,_CD,_CA,_I).
 
 swap(_JR,_T,Jeu,Jeu,_X,_Y,CD,CA,I):-
@@ -315,7 +335,7 @@ swap(JR, T, [_|Jeu], [Y|Next], X, Y, CD, CA, I):-
 %#########################
 %Remplir la nouvelle matrice de jeu Next avec l'ordre de jeu T allant de CD à CA depuis la matrice Jeu.
 %#########################
-
+%fill(+Joueur, +Type, +Jeu, -ProchainMouvement, +CaseDepart, +CaseArrivée)
 fill(JR, 0, Jeu, Next, _CD, CA):-
 	swap(JR, 0, Jeu, Next, JR, -2, -1, CA, 0),
 	!.
@@ -347,7 +367,7 @@ fill(JR, 2, Jeu, Next, CD, CA):-
 %#########################
 %Recherche de tous les coups possibles
 %#########################
-
+%findnextmoves(+Jeu, -MouvementsPossibles, +Joueur, +MouvementsInterdits)
 findnextmoves(Jeu, Moves, JR, ForbiddenMove):-
 	findall(Move, move(JR, 0, Jeu, Move), List),
 	findall(Move2, move(JR, 1, Jeu, Move2), List2),
@@ -358,6 +378,7 @@ findnextmoves(Jeu, Moves, JR, ForbiddenMove):-
 %#########################
 %Algorithme du negamax
 %#########################
+%negamax(+Jeu, +Profondeur, +Joueur, -MeilleureValeur, -MeilleurMouvement, +MouvementsInterdits, +NiveauIA)
 negamax(Jeu, 0, JR, X, Jeu, _ForbiddenMove, Level):-
 	!,
 	eval_board(Jeu, JR, X, Level, 0).
@@ -375,6 +396,7 @@ negamax(Jeu, Prof, JR, BestVal, BestMove, [ForbiddenMove, NextForbiddenMove], Le
 %On itère sur l'ensemble des mouvements possibles et on trouve la meilleure valeur.
 %#########################
 %Les deux prédicats suivants sont les appels finaux (quand il ne reste qu'une node dans la même profondeur).
+%for_each(+MouvementPossible, +Profondeur, +Joueur, +Valeur, -MeilleureValeur, -MeilleurMouvement, +MouvementsInterdits, +NiveauIA)
 for_each([Move], Prof, JR, Val, BestVal, Move, [_ForbiddenMove, NextForbiddenMove], Level):-
 	Prof1 is Prof-1,
 	adversaire(JR, JR2),

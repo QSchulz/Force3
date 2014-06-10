@@ -14,5 +14,5 @@ main :-
     start(Choix).
 
 
-% Lance le menu
+% Lance le menu et aggrandit la stack au maximum
 :- set_prolog_stack(global, limit(9223372036854775807)), main.
